@@ -7,3 +7,4 @@ It is written with asynchronous Python, using aiohttp, beautifulsoup4.
 * Python 3.10
 * aiohttp
 * beautifulsoup4
+* asyncpg

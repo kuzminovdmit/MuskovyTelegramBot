@@ -1,7 +1,6 @@
 from aiohttp import ClientSession
 from bs4 import BeautifulSoup
 
-import asyncio
 import logging
 import sys
 
@@ -21,7 +20,7 @@ CITIES_URL = '/wiki/%D0%93%D0%BE%D1%80%D0%BE%D0%B4%D1%81%D0%BA%D0%B8%D0%B5_%D0%B
              '%BA%D0%BE%D0%B9_%D0%BE%D0%B1%D0%BB%D0%B0%D1%81%D1%82%D0%B8'
 
 
-async def parser():
+async def parser() -> list[dict]:
     async with ClientSession() as session:
         async with session.get(BASE_URL + CITIES_URL) as response:
             logger.info(f'Got request {response.status} for {response.url}')
@@ -42,9 +41,3 @@ async def parser():
         logger.info(f'Parsed {len(cities)} cities')
 
         return cities
-
-
-if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(parser())
-
