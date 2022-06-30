@@ -33,12 +33,15 @@ async def parser():
         for tr in soup.find_all('table', class_='standard sortable', limit=1)[0].find_all('tr')[1:]:
             city_data = tr.find_all('td')
             cities.append({
-                'link': city_data[1].a['href'],
+                'id': int(city_data[0].string),
+                'link': BASE_URL + city_data[1].a['href'],
                 'name': city_data[1].a['title'],
-                'population': city_data[4]['data-sort-value']
+                'population': int(city_data[4]['data-sort-value'])
             })
 
         logger.info(f'Parsed {len(cities)} cities')
+
+        return cities
 
 
 if __name__ == '__main__':
