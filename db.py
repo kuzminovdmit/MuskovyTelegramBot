@@ -57,7 +57,7 @@ async def fill_db(cities: list[dict]):
     await conn.close()
 
 
-async def get_all_cities_name() -> tuple[str, str]:
+async def get_all_cities_name() -> list[str]:
     conn = await asyncpg.connect(
         user=settings.DB_USER, password=settings.DB_PASSWORD,
         database=settings.DB_NAME, host=settings.DB_HOST
@@ -65,16 +65,50 @@ async def get_all_cities_name() -> tuple[str, str]:
 
     logger.info('Connected to database')
 
-    cities_query = await conn.fetch(
+    cities = await conn.fetch(
         'SELECT name FROM cities;'
     )
-
-    cities_list = [city['name'] for city in cities_query]
-    cities_list_1 = cities_list[:len(cities_list) // 2]
-    cities_list_2 = cities_list[len(cities_list) // 2:]
 
     logger.info('Retrieved city data to database')
 
     await conn.close()
 
-    return '\n'.join(cities_list_1), '\n'.join(cities_list_2)
+    return cities
+
+
+async def get_cities_by_name(name: str) -> list[str]:
+    conn = await asyncpg.connect(
+        user=settings.DB_USER, password=settings.DB_PASSWORD,
+        database=settings.DB_NAME, host=settings.DB_HOST
+    )
+
+    logger.info('Connected to database')
+
+    cities = await conn.fetch(
+        'SELECT * FROM cities WHERE name LIKE $1', f'%{name}%'
+    )
+
+    logger.info('Retrieved cities like {name}')
+
+    await conn.close()
+
+    return cities
+
+
+async def get_city_by_name(name: str) -> dict:
+    conn = await asyncpg.connect(
+        user=settings.DB_USER, password=settings.DB_PASSWORD,
+        database=settings.DB_NAME, host=settings.DB_HOST
+    )
+
+    logger.info('Connected to database')
+
+    city = await conn.fetchrow(
+        'SELECT * FROM cities WHERE name = $1', name
+    )
+
+    logger.info('Retrieved city {name} data')
+
+    await conn.close()
+
+    return dict(city)
