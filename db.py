@@ -1,4 +1,3 @@
-import asyncio
 import asyncpg
 import logging
 import settings
@@ -15,7 +14,7 @@ logging.basicConfig(
 logger = logging.getLogger('db')
 
 
-async def create_table():
+async def connect_to_db() -> asyncpg.Connection:
     conn = await asyncpg.connect(
         user=settings.DB_USER, password=settings.DB_PASSWORD,
         database=settings.DB_NAME, host=settings.DB_HOST
@@ -23,6 +22,24 @@ async def create_table():
 
     logger.info('Connected to database')
 
+    return conn
+
+
+async def is_table_exists(conn: asyncpg.Connection) -> bool:
+    is_exists = await conn.fetchrow("SELECT COUNT(*) = 1 FROM information_schema.tables WHERE table_name = 'cities';")
+
+    logger.info('Is table exists: ' + str(is_exists[0]))
+
+    return is_exists[0]
+
+
+async def truncate_table(conn: asyncpg.Connection):
+    await conn.execute('TRUNCATE cities;')
+
+    logger.info('Truncated cities table')
+
+
+async def create_table(conn: asyncpg.Connection):
     await conn.execute('''
         CREATE TABLE cities(
             id INT NOT NULL,
@@ -35,80 +52,32 @@ async def create_table():
 
     logger.info('Created cities table')
 
-    await conn.close()
 
-
-async def fill_db(cities: list[dict]):
-    conn = await asyncpg.connect(
-        user=settings.DB_USER, password=settings.DB_PASSWORD,
-        database=settings.DB_NAME, host=settings.DB_HOST
-    )
-
-    logger.info('Connected to database')
-
+async def populate_table(conn: asyncpg.Connection, cities: list[dict]):
     for city in cities:
         await conn.execute(
             '''INSERT INTO cities(id, name, link, population) VALUES ($1, $2, $3, $4)''',
-            city['id'], city['name'], city['link'], city['population']
+            city['id'], city['name'].rstrip(), city['link'], city['population']
         )
 
-    logger.info('Added city data to database')
-
-    await conn.close()
+    logger.info('Added cities to database')
 
 
-async def get_all_cities_name() -> list[str]:
-    conn = await asyncpg.connect(
-        user=settings.DB_USER, password=settings.DB_PASSWORD,
-        database=settings.DB_NAME, host=settings.DB_HOST
-    )
-
-    logger.info('Connected to database')
-
+async def search(conn: asyncpg.Connection, query: str) -> list[asyncpg.Record]:
     cities = await conn.fetch(
-        'SELECT name FROM cities;'
+        'SELECT * FROM cities WHERE LOWER(name) LIKE $1', f'%{query.lower()}%'
     )
 
-    logger.info('Retrieved city data to database')
-
-    await conn.close()
+    logger.info('Retrieved cities named like {name}')
 
     return cities
 
 
-async def get_cities_by_name(name: str) -> list[str]:
-    conn = await asyncpg.connect(
-        user=settings.DB_USER, password=settings.DB_PASSWORD,
-        database=settings.DB_NAME, host=settings.DB_HOST
-    )
-
-    logger.info('Connected to database')
-
-    cities = await conn.fetch(
-        'SELECT * FROM cities WHERE name LIKE $1', f'%{name}%'
-    )
-
-    logger.info('Retrieved cities like {name}')
-
-    await conn.close()
-
-    return cities
-
-
-async def get_city_by_name(name: str) -> dict:
-    conn = await asyncpg.connect(
-        user=settings.DB_USER, password=settings.DB_PASSWORD,
-        database=settings.DB_NAME, host=settings.DB_HOST
-    )
-
-    logger.info('Connected to database')
-
+async def retrieve(conn: asyncpg.Connection, name: str) -> dict:
     city = await conn.fetchrow(
         'SELECT * FROM cities WHERE name = $1', name
     )
 
     logger.info('Retrieved city {name} data')
-
-    await conn.close()
 
     return dict(city)
