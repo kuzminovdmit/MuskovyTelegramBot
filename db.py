@@ -1,3 +1,4 @@
+import asyncio
 import asyncpg
 import logging
 import settings
@@ -56,7 +57,7 @@ async def fill_db(cities: list[dict]):
     await conn.close()
 
 
-async def get() -> list[asyncpg.Record]:
+async def get_all_cities_name() -> tuple[str, str]:
     conn = await asyncpg.connect(
         user=settings.DB_USER, password=settings.DB_PASSWORD,
         database=settings.DB_NAME, host=settings.DB_HOST
@@ -64,12 +65,16 @@ async def get() -> list[asyncpg.Record]:
 
     logger.info('Connected to database')
 
-    cities = await conn.fetch(
-        'SELECT * FROM cities;'
+    cities_query = await conn.fetch(
+        'SELECT name FROM cities;'
     )
+
+    cities_list = [city['name'] for city in cities_query]
+    cities_list_1 = cities_list[:len(cities_list) // 2]
+    cities_list_2 = cities_list[len(cities_list) // 2:]
 
     logger.info('Retrieved city data to database')
 
     await conn.close()
 
-    return cities
+    return '\n'.join(cities_list_1), '\n'.join(cities_list_2)
